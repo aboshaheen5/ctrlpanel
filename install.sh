@@ -70,9 +70,13 @@ print_status "Adding PHP repository..."
 add-apt-repository -y ppa:ondrej/php
 apt update
 
-# Install PHP and extensions
-print_status "Installing PHP and extensions..."
-apt install -y php8.1-fpm php8.1-cli php8.1-common php8.1-mysql php8.1-zip php8.1-gd php8.1-mbstring php8.1-curl php8.1-xml php8.1-bcmath php8.1-intl php8.1-ldap php8.1-imap php8.1-soap php8.1-pspell php8.1-phpdbg php8.1-sqlite3 php8.1-memcached php8.1-redis php8.1-xdebug php8.1-opcache php8.1-readline php8.1-xmlrpc php8.1-gmp php8.1-imagick php8.1-dev
+# Remove PHP 8.1 if exists
+print_status "Removing PHP 8.1 if exists..."
+apt remove -y php8.1-fpm php8.1-cli php8.1-common php8.1-mysql php8.1-zip php8.1-gd php8.1-mbstring php8.1-curl php8.1-xml php8.1-bcmath php8.1-intl php8.1-ldap php8.1-imap php8.1-soap php8.1-pspell php8.1-phpdbg php8.1-sqlite3 php8.1-memcached php8.1-redis php8.1-xdebug php8.1-opcache php8.1-readline php8.1-xmlrpc php8.1-gmp php8.1-imagick php8.1-dev
+
+# Install PHP 8.2 and extensions
+print_status "Installing PHP 8.2 and extensions..."
+apt install -y php8.2-fpm php8.2-cli php8.2-common php8.2-mysql php8.2-zip php8.2-gd php8.2-mbstring php8.2-curl php8.2-xml php8.2-bcmath php8.2-intl php8.2-ldap php8.2-imap php8.2-soap php8.2-pspell php8.2-phpdbg php8.2-sqlite3 php8.2-memcached php8.2-redis php8.2-xdebug php8.2-opcache php8.2-readline php8.2-xmlrpc php8.2-gmp php8.2-imagick php8.2-dev
 
 # Verify PHP installation
 if ! command_exists php; then
@@ -122,7 +126,15 @@ git clone https://github.com/ControlPanel-gg/dashboard.git .
 
 # Install dependencies
 print_status "Installing PHP dependencies..."
-composer install --no-dev --optimize-autoloader
+echo -e "${YELLOW}This step may take a few minutes. Please wait...${NC}"
+composer install --no-dev --optimize-autoloader --no-interaction
+
+if [ $? -eq 0 ]; then
+    print_success "PHP dependencies installed successfully!"
+else
+    print_error "Failed to install PHP dependencies"
+    exit 1
+fi
 
 # Create database and user
 print_status "Creating database and user..."
@@ -144,6 +156,7 @@ print_status "Setting proper permissions..."
 chown -R www-data:www-data /var/www/pterodactyl
 chmod -R 755 /var/www/pterodactyl
 chmod -R 777 /var/www/pterodactyl/storage
+chmod -R 777 /var/www/pterodactyl/bootstrap/cache
 
 # Configure Nginx
 print_status "Configuring Nginx..."
@@ -164,7 +177,7 @@ server {
 
     location ~ \.php$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
@@ -177,10 +190,24 @@ EOL
 ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
 
+# Configure firewall
+print_status "Configuring firewall..."
+if command_exists ufw; then
+    ufw allow 80
+    ufw allow 443
+    ufw allow 22
+    ufw --force enable
+fi
+
+# Install SSL certificate
+print_status "Installing SSL certificate..."
+apt install -y certbot python3-certbot-nginx
+certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email ${ADMIN_EMAIL}
+
 # Restart services
 print_status "Restarting services..."
 systemctl restart nginx
-systemctl restart php8.1-fpm
+systemctl restart php8.2-fpm
 
 # Generate application key
 print_status "Generating application key..."
@@ -196,6 +223,10 @@ php artisan make:admin --email="${ADMIN_EMAIL}" --username="${ADMIN_USERNAME}" -
 
 # Clear cache and optimize
 print_status "Optimizing application..."
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+php artisan route:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -209,7 +240,6 @@ echo "Email: ${ADMIN_EMAIL}"
 echo "Username: ${ADMIN_USERNAME}"
 echo -e "\n${GREEN}Please save these credentials in a secure place!${NC}"
 echo -e "\n${YELLOW}Next steps:${NC}"
-echo "1. Configure your SSL certificate"
-echo "2. Set up your payment gateway"
-echo "3. Configure your email settings"
+echo "1. Set up your payment gateway"
+echo "2. Configure your email settings"
 echo -e "\n${GREEN}Thank you for using Pterodactyl Client Area!${NC}" 
