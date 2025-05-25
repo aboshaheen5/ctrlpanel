@@ -78,6 +78,12 @@ apt remove -y php8.1-fpm php8.1-cli php8.1-common php8.1-mysql php8.1-zip php8.1
 print_status "Installing PHP 8.2 and extensions..."
 apt install -y php8.2-fpm php8.2-cli php8.2-common php8.2-mysql php8.2-zip php8.2-gd php8.2-mbstring php8.2-curl php8.2-xml php8.2-bcmath php8.2-intl php8.2-ldap php8.2-imap php8.2-soap php8.2-pspell php8.2-phpdbg php8.2-sqlite3 php8.2-memcached php8.2-redis php8.2-xdebug php8.2-opcache php8.2-readline php8.2-xmlrpc php8.2-gmp php8.2-imagick php8.2-dev
 
+# Install Redis
+print_status "Installing Redis..."
+apt install -y redis-server
+systemctl enable redis-server
+systemctl start redis-server
+
 # Verify PHP installation
 if ! command_exists php; then
     print_error "PHP installation failed"
@@ -124,10 +130,14 @@ cd /var/www/pterodactyl
 print_status "Cloning the client area..."
 git clone https://github.com/ControlPanel-gg/dashboard.git .
 
+# Update composer.json to fix package issues
+print_status "Updating composer.json..."
+sed -i 's/"biscollab\/laravel-recaptcha": "^1.0"/"biscollab\/laravel-recaptcha": "^1.0",\n        "paypal\/paypal-server-sdk": "^1.0"/g' composer.json
+
 # Install dependencies
 print_status "Installing PHP dependencies..."
 echo -e "${YELLOW}This step may take a few minutes. Please wait...${NC}"
-composer install --no-dev --optimize-autoloader --no-interaction
+composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
 if [ $? -eq 0 ]; then
     print_success "PHP dependencies installed successfully!"
@@ -150,6 +160,9 @@ sed -i "s|APP_URL=.*|APP_URL=https://${DOMAIN}|g" .env
 sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|g" .env
 sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USER}|g" .env
 sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|g" .env
+sed -i "s|REDIS_HOST=.*|REDIS_HOST=127.0.0.1|g" .env
+sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=null|g" .env
+sed -i "s|REDIS_PORT=.*|REDIS_PORT=6379|g" .env
 
 # Set proper permissions
 print_status "Setting proper permissions..."
@@ -208,6 +221,7 @@ certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email ${ADMIN_EMAIL
 print_status "Restarting services..."
 systemctl restart nginx
 systemctl restart php8.2-fpm
+systemctl restart redis-server
 
 # Generate application key
 print_status "Generating application key..."
