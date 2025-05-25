@@ -19,6 +19,11 @@ print_error() {
     echo -e "${RED}[-] $1${NC}"
 }
 
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
 # Function to get user input
 get_input() {
     read -p "$1: " input
@@ -58,7 +63,7 @@ apt update && apt upgrade -y
 
 # Install required dependencies
 print_status "Installing required dependencies..."
-apt install -y software-properties-common apt-transport-https lsb-release ca-certificates gnupg2
+apt install -y software-properties-common apt-transport-https lsb-release ca-certificates gnupg2 curl git
 
 # Add PHP repository
 print_status "Adding PHP repository..."
@@ -69,20 +74,45 @@ apt update
 print_status "Installing PHP and extensions..."
 apt install -y php8.1-fpm php8.1-cli php8.1-common php8.1-mysql php8.1-zip php8.1-gd php8.1-mbstring php8.1-curl php8.1-xml php8.1-bcmath php8.1-json php8.1-intl php8.1-ldap php8.1-imap php8.1-soap php8.1-pspell php8.1-phpdbg php8.1-sqlite3 php8.1-memcached php8.1-redis php8.1-xdebug php8.1-opcache php8.1-readline php8.1-xmlrpc php8.1-gmp php8.1-imagick php8.1-dev
 
+# Verify PHP installation
+if ! command_exists php; then
+    print_error "PHP installation failed"
+    exit 1
+fi
+
 # Install MySQL
 print_status "Installing MySQL..."
 apt install -y mysql-server
+
+# Verify MySQL installation
+if ! command_exists mysql; then
+    print_error "MySQL installation failed"
+    exit 1
+fi
 
 # Install Nginx
 print_status "Installing Nginx..."
 apt install -y nginx
 
+# Verify Nginx installation
+if ! command_exists nginx; then
+    print_error "Nginx installation failed"
+    exit 1
+fi
+
 # Install Composer
 print_status "Installing Composer..."
 curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
+# Verify Composer installation
+if ! command_exists composer; then
+    print_error "Composer installation failed"
+    exit 1
+fi
+
 # Create directory for the client area
 print_status "Creating installation directory..."
+rm -rf /var/www/pterodactyl
 mkdir -p /var/www/pterodactyl
 cd /var/www/pterodactyl
 
