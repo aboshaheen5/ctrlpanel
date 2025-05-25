@@ -25,6 +25,13 @@ get_input() {
     echo $input
 }
 
+# Function to get password input (hidden)
+get_password() {
+    read -sp "$1: " input
+    echo
+    echo $input
+}
+
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
     print_error "Please run as root"
@@ -40,10 +47,10 @@ DB_NAME=$(get_input "Enter database name (default: pterodactyl)")
 DB_NAME=${DB_NAME:-pterodactyl}
 DB_USER=$(get_input "Enter database username (default: pterodactyl)")
 DB_USER=${DB_USER:-pterodactyl}
-DB_PASS=$(get_input "Enter database password")
+DB_PASS=$(get_password "Enter database password")
 ADMIN_EMAIL=$(get_input "Enter admin email")
 ADMIN_USERNAME=$(get_input "Enter admin username")
-ADMIN_PASSWORD=$(get_input "Enter admin password")
+ADMIN_PASSWORD=$(get_password "Enter admin password")
 
 # Update system
 print_status "Updating system packages..."
@@ -51,7 +58,24 @@ apt update && apt upgrade -y
 
 # Install required dependencies
 print_status "Installing required dependencies..."
-apt install -y curl git nginx php8.1-fpm php8.1-cli php8.1-common php8.1-mysql php8.1-zip php8.1-gd php8.1-mbstring php8.1-curl php8.1-xml php8.1-bcmath php8.1-json php8.1-intl php8.1-ldap php8.1-imap php8.1-soap php8.1-pspell php8.1-phpdbg php8.1-sqlite3 php8.1-memcached php8.1-redis php8.1-xdebug php8.1-opcache php8.1-readline php8.1-xmlrpc php8.1-gmp php8.1-imagick php8.1-dev
+apt install -y software-properties-common apt-transport-https lsb-release ca-certificates gnupg2
+
+# Add PHP repository
+print_status "Adding PHP repository..."
+add-apt-repository -y ppa:ondrej/php
+apt update
+
+# Install PHP and extensions
+print_status "Installing PHP and extensions..."
+apt install -y php8.1-fpm php8.1-cli php8.1-common php8.1-mysql php8.1-zip php8.1-gd php8.1-mbstring php8.1-curl php8.1-xml php8.1-bcmath php8.1-json php8.1-intl php8.1-ldap php8.1-imap php8.1-soap php8.1-pspell php8.1-phpdbg php8.1-sqlite3 php8.1-memcached php8.1-redis php8.1-xdebug php8.1-opcache php8.1-readline php8.1-xmlrpc php8.1-gmp php8.1-imagick php8.1-dev
+
+# Install MySQL
+print_status "Installing MySQL..."
+apt install -y mysql-server
+
+# Install Nginx
+print_status "Installing Nginx..."
+apt install -y nginx
 
 # Install Composer
 print_status "Installing Composer..."
@@ -93,6 +117,9 @@ chmod -R 777 /var/www/pterodactyl/storage
 
 # Configure Nginx
 print_status "Configuring Nginx..."
+mkdir -p /etc/nginx/sites-available
+mkdir -p /etc/nginx/sites-enabled
+
 cat > /etc/nginx/sites-available/pterodactyl.conf << EOL
 server {
     listen 80;
