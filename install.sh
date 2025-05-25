@@ -30,13 +30,6 @@ get_input() {
     echo $input
 }
 
-# Function to get password input (hidden)
-get_password() {
-    read -sp "$1: " input
-    echo
-    echo $input
-}
-
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
     print_error "Please run as root"
@@ -48,14 +41,6 @@ echo -e "${YELLOW}=== Pterodactyl Client Area Installation ===${NC}"
 echo -e "${YELLOW}Please provide the following information:${NC}"
 
 DOMAIN=$(get_input "Enter your domain name (e.g., example.com)")
-DB_NAME=$(get_input "Enter database name (default: pterodactyl)")
-DB_NAME=${DB_NAME:-pterodactyl}
-DB_USER=$(get_input "Enter database username (default: pterodactyl)")
-DB_USER=${DB_USER:-pterodactyl}
-DB_PASS=$(get_password "Enter database password")
-ADMIN_EMAIL=$(get_input "Enter admin email")
-ADMIN_USERNAME=$(get_input "Enter admin username")
-ADMIN_PASSWORD=$(get_password "Enter admin password")
 
 # Update system
 print_status "Updating system packages..."
@@ -146,24 +131,6 @@ else
     exit 1
 fi
 
-# Create database and user
-print_status "Creating database and user..."
-mysql -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
-mysql -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
-mysql -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
-mysql -e "FLUSH PRIVILEGES;"
-
-# Configure .env file
-print_status "Configuring environment..."
-cp .env.example .env
-sed -i "s|APP_URL=.*|APP_URL=https://${DOMAIN}|g" .env
-sed -i "s|DB_DATABASE=.*|DB_DATABASE=${DB_NAME}|g" .env
-sed -i "s|DB_USERNAME=.*|DB_USERNAME=${DB_USER}|g" .env
-sed -i "s|DB_PASSWORD=.*|DB_PASSWORD=${DB_PASS}|g" .env
-sed -i "s|REDIS_HOST=.*|REDIS_HOST=127.0.0.1|g" .env
-sed -i "s|REDIS_PASSWORD=.*|REDIS_PASSWORD=null|g" .env
-sed -i "s|REDIS_PORT=.*|REDIS_PORT=6379|g" .env
-
 # Set proper permissions
 print_status "Setting proper permissions..."
 chown -R www-data:www-data /var/www/pterodactyl
@@ -215,7 +182,7 @@ fi
 # Install SSL certificate
 print_status "Installing SSL certificate..."
 apt install -y certbot python3-certbot-nginx
-certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email ${ADMIN_EMAIL}
+certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email admin@${DOMAIN}
 
 # Restart services
 print_status "Restarting services..."
@@ -223,37 +190,11 @@ systemctl restart nginx
 systemctl restart php8.2-fpm
 systemctl restart redis-server
 
-# Generate application key
-print_status "Generating application key..."
-php artisan key:generate
-
-# Run database migrations
-print_status "Running database migrations..."
-php artisan migrate --force
-
-# Create admin user
-print_status "Creating admin user..."
-php artisan make:admin --email="${ADMIN_EMAIL}" --username="${ADMIN_USERNAME}" --password="${ADMIN_PASSWORD}"
-
-# Clear cache and optimize
-print_status "Optimizing application..."
-php artisan config:clear
-php artisan cache:clear
-php artisan view:clear
-php artisan route:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
 # Installation complete
 echo -e "\n${GREEN}=== Installation Completed Successfully! ===${NC}"
 echo -e "${YELLOW}Your client area is now ready to use!${NC}"
 echo -e "${GREEN}Access your client area at: https://${DOMAIN}${NC}"
-echo -e "\n${YELLOW}Admin credentials:${NC}"
-echo "Email: ${ADMIN_EMAIL}"
-echo "Username: ${ADMIN_USERNAME}"
-echo -e "\n${GREEN}Please save these credentials in a secure place!${NC}"
 echo -e "\n${YELLOW}Next steps:${NC}"
-echo "1. Set up your payment gateway"
-echo "2. Configure your email settings"
+echo "1. Visit https://${DOMAIN} to complete the installation"
+echo "2. Follow the installation wizard to set up your database and admin account"
 echo -e "\n${GREEN}Thank you for using Pterodactyl Client Area!${NC}" 
