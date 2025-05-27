@@ -121,4 +121,71 @@ If you find this project helpful, consider supporting its development:
 
 ---
 
-Made with ❤️ by [aboshaheen5](https://github.com/aboshaheen5) 
+Made with ❤️ by [aboshaheen5](https://github.com/aboshaheen5)
+
+# CtrlPanel Installation Script
+
+This script automates the installation of CtrlPanel on your server. It handles all the necessary steps including:
+- Installing dependencies
+- Setting up the database
+- Configuring the web server
+- Setting up the queue worker
+- Setting proper permissions
+
+## Prerequisites
+
+- Ubuntu/Debian based system
+- Root access
+- Domain name pointed to your server
+- Basic knowledge of Linux commands
+
+## Installation Steps
+
+1. Download the installation script:
+```bash
+wget https://raw.githubusercontent.com/your-repo/install.sh
+```
+
+2. Make the script executable:
+```bash
+chmod +x install.sh
+```
+
+3. Run the installation script:
+```bash
+sudo ./install.sh
+```
+
+4. Follow the prompts to enter your database credentials when asked.
+
+5. After installation completes, visit `https://YOUR_DOMAIN/installer` to complete the setup.
+
+## What the Script Does
+
+1. Installs all required dependencies:
+   - PHP 8.3 and required extensions
+   - MariaDB
+   - Nginx
+   - Redis
+   - Composer
+
+2. Sets up the database with your provided credentials
+
+3. Downloads and configures CtrlPanel
+
+4. Sets up the queue worker and cron jobs
+
+5. Configures proper permissions
+
+## Troubleshooting
+
+If you encounter any issues during installation:
+
+1. Check the error messages in the console
+2. Ensure all prerequisites are met
+3. Verify your domain is properly configured
+4. Check the logs in `/var/log/nginx/error.log`
+
+## Support
+
+For additional support, please visit the [CtrlPanel documentation](https://ctrlpanel.gg/docs/Installation/getting-started). 
