@@ -196,7 +196,8 @@ perform_installation() {
     mkdir -p /etc/nginx/sites-available
     mkdir -p /etc/nginx/sites-enabled
 
-    cat > /etc/nginx/sites-available/pterodactyl.conf << 'EOL'
+    # Create Nginx configuration with proper domain
+    cat > /etc/nginx/sites-available/pterodactyl.conf << EOF
 server {
     listen 80;
     server_name ${DOMAIN};
@@ -205,7 +206,7 @@ server {
     index index.php;
 
     location / {
-        try_files $uri $uri/ /index.php?$query_string;
+        try_files \$uri \$uri/ /index.php?\$query_string;
     }
 
     location ~ \.php$ {
@@ -213,15 +214,22 @@ server {
         fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
         fastcgi_index index.php;
         include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        fastcgi_param PATH_INFO \$fastcgi_path_info;
     }
 }
-EOL
+EOF
 
     # Enable the site
-    ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/
+    ln -sf /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/
     rm -f /etc/nginx/sites-enabled/default
+
+    # Test Nginx configuration
+    print_status "Testing Nginx configuration..."
+    nginx -t
+
+    # Restart Nginx to apply changes
+    systemctl restart nginx
 
     # Configure firewall
     print_status "Configuring firewall..."
@@ -235,7 +243,23 @@ EOL
     # Install SSL certificate
     print_status "Installing SSL certificate..."
     apt install -y certbot python3-certbot-nginx
-    certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email admin@${DOMAIN}
+
+    # Stop Nginx before certbot
+    systemctl stop nginx
+
+    # Run certbot with nginx plugin
+    certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --email admin@${DOMAIN} --redirect
+
+    # Start Nginx after certbot
+    systemctl start nginx
+
+    # Verify SSL installation
+    if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
+        print_success "SSL certificate installed successfully!"
+    else
+        print_error "SSL certificate installation failed. Please run: certbot install --cert-name ${DOMAIN}"
+        exit 1
+    fi
 
     # Restart services
     print_status "Restarting services..."
