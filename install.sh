@@ -36,6 +36,70 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Check if installation exists and was done by this script
+if [ -f "/var/www/ctrlpanel/.installed_by_script" ]; then
+    echo -e "${YELLOW}=== Pterodactyl Client Area Update ===${NC}"
+    echo -e "${YELLOW}An existing installation was found that was installed using this script.${NC}"
+    echo -e "${YELLOW}Would you like to:${NC}"
+    echo "1. Update the existing installation"
+    echo "2. Perform a fresh installation (this will remove the existing installation)"
+    echo "3. Exit"
+    
+    choice=$(get_input "Enter your choice (1-3)")
+    
+    case $choice in
+        1)
+            print_status "Starting update process..."
+            cd /var/www/ctrlpanel
+            
+            # Backup current .env file
+            if [ -f ".env" ]; then
+                cp .env .env.backup
+            fi
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Update dependencies
+            composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
+            
+            # Restore .env file
+            if [ -f ".env.backup" ]; then
+                mv .env.backup .env
+            fi
+            
+            # Clear cache and optimize
+            php artisan optimize:clear
+            php artisan optimize
+            
+            # Update permissions
+            chown -R www-data:www-data /var/www/ctrlpanel
+            chmod -R 755 /var/www/ctrlpanel
+            chmod -R 777 /var/www/ctrlpanel/storage
+            chmod -R 777 /var/www/ctrlpanel/bootstrap/cache
+            
+            # Restart services
+            systemctl restart nginx
+            systemctl restart php8.2-fpm
+            
+            print_success "Update completed successfully!"
+            exit 0
+            ;;
+        2)
+            print_status "Removing existing installation..."
+            rm -rf /var/www/ctrlpanel
+            ;;
+        3)
+            print_status "Exiting..."
+            exit 0
+            ;;
+        *)
+            print_error "Invalid choice"
+            exit 1
+            ;;
+    esac
+fi
+
 # Get required information
 echo -e "${YELLOW}=== Pterodactyl Client Area Installation ===${NC}"
 echo -e "${YELLOW}Please provide the following information:${NC}"
@@ -107,9 +171,9 @@ fi
 
 # Create directory for the client area
 print_status "Creating installation directory..."
-rm -rf /var/www/pterodactyl
-mkdir -p /var/www/pterodactyl
-cd /var/www/pterodactyl
+rm -rf /var/www/ctrlpanel
+mkdir -p /var/www/ctrlpanel
+cd /var/www/ctrlpanel
 
 # Clone the ready-made client area
 print_status "Cloning the client area..."
@@ -133,10 +197,10 @@ fi
 
 # Set proper permissions
 print_status "Setting proper permissions..."
-chown -R www-data:www-data /var/www/pterodactyl
-chmod -R 755 /var/www/pterodactyl
-chmod -R 777 /var/www/pterodactyl/storage
-chmod -R 777 /var/www/pterodactyl/bootstrap/cache
+chown -R www-data:www-data /var/www/ctrlpanel
+chmod -R 755 /var/www/ctrlpanel
+chmod -R 777 /var/www/ctrlpanel/storage
+chmod -R 777 /var/www/ctrlpanel/bootstrap/cache
 
 # Configure Nginx
 print_status "Configuring Nginx..."
@@ -147,7 +211,7 @@ cat > /etc/nginx/sites-available/pterodactyl.conf << EOL
 server {
     listen 80;
     server_name ${DOMAIN};
-    root /var/www/pterodactyl/public;
+    root /var/www/ctrlpanel/public;
 
     index index.php;
 
@@ -189,6 +253,9 @@ print_status "Restarting services..."
 systemctl restart nginx
 systemctl restart php8.2-fpm
 systemctl restart redis-server
+
+# Create installation marker
+touch /var/www/ctrlpanel/.installed_by_script
 
 # Installation complete
 echo -e "\n${GREEN}=== Installation Completed Successfully! ===${NC}"
