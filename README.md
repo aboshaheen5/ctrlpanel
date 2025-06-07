@@ -41,27 +41,34 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-## Update System
+## Script Options
 
-The script includes an intelligent update system that:
+The script provides a user-friendly menu with the following options:
 
-1. Detects if the installation was done using this script
-2. Provides three options:
-   - Update existing installation
-   - Perform fresh installation
-   - Exit
+1. **Install new client area**
+   - Fresh installation of the client area
+   - Configures all required services
+   - Sets up SSL certificate
+   - Creates necessary directories and permissions
 
-To update your installation, simply run the script again:
-```bash
-sudo ./install.sh
-```
+2. **Update existing installation**
+   - Updates to the latest version
+   - Preserves your configuration
+   - Updates dependencies
+   - Optimizes the application
 
-The update process will:
-- Backup your current configuration
-- Pull the latest changes
-- Update dependencies
-- Optimize the application
-- Restart necessary services
+3. **Change domain name**
+   - Updates domain configuration
+   - Renews SSL certificate
+   - Updates Nginx configuration
+
+4. **Uninstall client area**
+   - Removes the installation
+   - Cleans up configuration files
+   - Requires confirmation for safety
+
+5. **Exit**
+   - Safely exits the script
 
 ## Post-Installation
 
