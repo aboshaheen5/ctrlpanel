@@ -196,28 +196,28 @@ perform_installation() {
     mkdir -p /etc/nginx/sites-available
     mkdir -p /etc/nginx/sites-enabled
 
-    cat > /etc/nginx/sites-available/pterodactyl.conf << EOL
-    server {
-        listen 80;
-        server_name ${DOMAIN};
-        root /var/www/ctrlpanel/public;
+    cat > /etc/nginx/sites-available/pterodactyl.conf << 'EOL'
+server {
+    listen 80;
+    server_name ${DOMAIN};
+    root /var/www/ctrlpanel/public;
 
-        index index.php;
+    index index.php;
 
-        location / {
-            try_files \$uri \$uri/ /index.php?\$query_string;
-        }
-
-        location ~ \.php$ {
-            fastcgi_split_path_info ^(.+\.php)(/.+)$;
-            fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-            fastcgi_index index.php;
-            include fastcgi_params;
-            fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-            fastcgi_param PATH_INFO \$fastcgi_path_info;
-        }
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
     }
-    EOL
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+    }
+}
+EOL
 
     # Enable the site
     ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/
