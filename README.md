@@ -5,6 +5,7 @@ A professional installation script for setting up a ready-to-use Pterodactyl cli
 ## Features
 
 - 🚀 One-click installation
+- 🔄 Automatic update system
 - 🔒 Secure by default
 - 🎨 Beautiful and modern UI
 - 🌐 Multi-language support
@@ -12,13 +13,12 @@ A professional installation script for setting up a ready-to-use Pterodactyl cli
 - 🎫 Ticket system
 - 👥 User management
 - 📊 Server statistics
-- 🔄 Automatic updates
 - 🛡️ Security features
 
 ## Requirements
 
 - Ubuntu/Debian based system
-- PHP 8.1 or higher
+- PHP 8.2
 - MySQL/MariaDB
 - Nginx
 - Root access
@@ -27,8 +27,8 @@ A professional installation script for setting up a ready-to-use Pterodactyl cli
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/aboshaheen5/pterodactyl-client-area.git
-cd pterodactyl-client-area
+git clone https://github.com/aboshaheen5/ctrlpanel.git
+cd ctrlpanel
 ```
 
 2. Make the script executable:
@@ -40,6 +40,28 @@ chmod +x install.sh
 ```bash
 sudo ./install.sh
 ```
+
+## Update System
+
+The script includes an intelligent update system that:
+
+1. Detects if the installation was done using this script
+2. Provides three options:
+   - Update existing installation
+   - Perform fresh installation
+   - Exit
+
+To update your installation, simply run the script again:
+```bash
+sudo ./install.sh
+```
+
+The update process will:
+- Backup your current configuration
+- Pull the latest changes
+- Update dependencies
+- Optimize the application
+- Restart necessary services
 
 ## Post-Installation
 
@@ -80,6 +102,7 @@ The installation script implements several security measures:
 - Nginx security headers
 - CSRF protection
 - XSS protection
+- Automatic SSL certificate installation
 
 ## Support
 
